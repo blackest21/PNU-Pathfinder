@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Send } from 'lucide-react';
 import { aiResponses } from '../data/mockData';
 import ChatMessage from '../components/ChatMessage';
 import Recommendations from '../components/Recommendations';
 import TypingIndicator from '../components/TypingIndicator';
 import Welcome from '../components/Welcome';
+import type { ChatMessageItem } from '../types';
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const chatAreaRef = useRef(null);
+  const chatAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (chatAreaRef.current) {
@@ -18,7 +20,7 @@ export default function ChatPage() {
     }
   }, [messages, isTyping]);
 
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = input.trim();
     if (!text || isTyping) return;

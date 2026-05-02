@@ -1,32 +1,15 @@
-const API_BASE_URL = 'http://127.0.0.1:8000';
+import type { AcademicProgram, AcademicProgramPayload, AdminLoginPayload, AuthResult } from '../types';
+import { request } from './apiClient';
 
-async function request(path: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.detail || '요청을 처리하지 못했습니다.');
-  }
-
-  return data;
-}
-
-export function adminLogin(payload) {
-  return request('/api/admin/login', {
+export function adminLogin(payload: AdminLoginPayload): Promise<AuthResult> {
+  return request<AuthResult>('/api/admin/login', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function createAcademicProgram(token, payload) {
-  return request('/api/admin/programs', {
+export function createAcademicProgram(token: string, payload: AcademicProgramPayload): Promise<AcademicProgram> {
+  return request<AcademicProgram>('/api/admin/programs', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -35,8 +18,8 @@ export function createAcademicProgram(token, payload) {
   });
 }
 
-export function updateAcademicProgram(token, programId, payload) {
-  return request(`/api/admin/programs/${programId}`, {
+export function updateAcademicProgram(token: string, programId: number, payload: AcademicProgramPayload): Promise<AcademicProgram> {
+  return request<AcademicProgram>(`/api/admin/programs/${programId}`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -45,8 +28,8 @@ export function updateAcademicProgram(token, programId, payload) {
   });
 }
 
-export function deleteAcademicProgram(token, programId) {
-  return request(`/api/admin/programs/${programId}`, {
+export function deleteAcademicProgram(token: string, programId: number): Promise<void> {
+  return request<void>(`/api/admin/programs/${programId}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -54,8 +37,8 @@ export function deleteAcademicProgram(token, programId) {
   });
 }
 
-export function getAcademicPrograms(token) {
-  return request('/api/admin/programs', {
+export function getAcademicPrograms(token: string): Promise<AcademicProgram[]> {
+  return request<AcademicProgram[]>('/api/admin/programs', {
     headers: {
       Authorization: `Bearer ${token}`,
     },

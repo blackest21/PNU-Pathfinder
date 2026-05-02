@@ -14,9 +14,9 @@ import SemesterCard from '../components/SemesterCard';
 import TableSection from '../components/TableSection';
 
 export default function DataPage() {
-  const [openSemesters, setOpenSemesters] = useState({});
+  const [openSemesters, setOpenSemesters] = useState<Record<number, boolean>>({});
 
-  function toggleSemester(index) {
+  function toggleSemester(index: number) {
     setOpenSemesters((current) => ({ ...current, [index]: !current[index] }));
   }
 

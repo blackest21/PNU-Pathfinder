@@ -1,6 +1,15 @@
+import type { AppIcon, TableRow } from '../types';
 import Section from './Section';
 
-export default function TableSection({ title, icon, headers, rows, compact = false }) {
+interface TableSectionProps {
+  title: string;
+  icon: AppIcon;
+  headers: string[];
+  rows: TableRow[];
+  compact?: boolean;
+}
+
+export default function TableSection({ title, icon, headers, rows, compact = false }: TableSectionProps) {
   return (
     <Section title={title} icon={icon}>
       <table className="w-full text-sm">

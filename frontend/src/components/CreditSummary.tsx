@@ -8,7 +8,13 @@ export default function CreditSummary() {
   );
 }
 
-function SummaryRow({ label, value, color }) {
+interface SummaryRowProps {
+  label: string;
+  value: string;
+  color: string;
+}
+
+function SummaryRow({ label, value, color }: SummaryRowProps) {
   return (
     <div className="flex justify-between text-sm">
       <span className="text-slate-300">{label}</span>
