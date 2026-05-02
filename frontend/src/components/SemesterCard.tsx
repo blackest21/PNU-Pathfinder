@@ -1,6 +1,13 @@
 import { ChevronDown } from 'lucide-react';
+import type { Semester } from '../types';
 
-export default function SemesterCard({ semester, isOpen, onToggle }) {
+interface SemesterCardProps {
+  semester: Semester;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export default function SemesterCard({ semester, isOpen, onToggle }: SemesterCardProps) {
   return (
     <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-750">
       <button className="w-full flex justify-between items-center px-4 py-3 hover:bg-slate-700 transition" onClick={onToggle}>

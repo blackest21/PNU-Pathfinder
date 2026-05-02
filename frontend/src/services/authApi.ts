@@ -1,39 +1,22 @@
-const API_BASE_URL = 'http://127.0.0.1:8000';
+import type { AuthResult, LoginPayload, SignupPayload, UserSession } from '../types';
+import { request } from './apiClient';
 
-async function request(path: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.detail || '요청을 처리하지 못했습니다.');
-  }
-
-  return data;
-}
-
-export function signup(payload) {
-  return request('/api/auth/signup', {
+export function signup(payload: SignupPayload): Promise<AuthResult> {
+  return request<AuthResult>('/api/auth/signup', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function login(payload) {
-  return request('/api/auth/login', {
+export function login(payload: LoginPayload): Promise<AuthResult> {
+  return request<AuthResult>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function getMe(token) {
-  return request('/api/auth/me', {
+export function getMe(token: string): Promise<UserSession> {
+  return request<UserSession>('/api/auth/me', {
     headers: {
       Authorization: `Bearer ${token}`,
     },

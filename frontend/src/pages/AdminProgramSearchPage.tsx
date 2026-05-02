@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { BookOpen, ChevronDown, LibraryBig, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react';
 import { createAcademicProgram, deleteAcademicProgram, getAcademicPrograms, updateAcademicProgram } from '../services/adminApi';
+import type { AcademicProgram, AcademicProgramPayload, CurriculumCourse, CurriculumCourseForm } from '../types';
 
 const categoryGroups = [
   { title: '효원핵심교양', matches: ['효원핵심교양'] },
@@ -43,7 +44,7 @@ function blankForm() {
   };
 }
 
-function formFromProgram(program) {
+function formFromProgram(program: AcademicProgram) {
   return {
     department: program.department || '',
     major: program.major || '',
@@ -67,24 +68,31 @@ function formFromProgram(program) {
 }
 
 export default function AdminProgramSearchPage() {
-  const [programs, setPrograms] = useState([]);
+  const [programs, setPrograms] = useState<AcademicProgram[]>([]);
   const [query, setQuery] = useState('');
-  const [openProgramId, setOpenProgramId] = useState(null);
-  const [editorMode, setEditorMode] = useState(null);
-  const [editingProgramId, setEditingProgramId] = useState(null);
+  const [openProgramId, setOpenProgramId] = useState<number | null>(null);
+  const [editorMode, setEditorMode] = useState<'create' | 'edit' | null>(null);
+  const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   const [form, setForm] = useState(blankForm);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isBasicDirty, setIsBasicDirty] = useState(false);
+  const [isRequirementDirty, setIsRequirementDirty] = useState(false);
+  const [dirtyCourseIndexes, setDirtyCourseIndexes] = useState<Set<number>>(new Set());
+  const [isCourseSectionDirty, setIsCourseSectionDirty] = useState(false);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  async function loadPrograms(nextOpenId = openProgramId) {
+  async function loadPrograms(nextOpenId: number | null = openProgramId) {
     try {
-      const token = window.localStorage.getItem('pnu-pathfinder-token');
+      const token = window.localStorage.getItem('pnu-pathfinder-token')!;
       const result = await getAcademicPrograms(token);
       setPrograms(result);
       setOpenProgramId(nextOpenId);
     } catch (error) {
-      setStatus({ type: 'error', message: error.message });
+      setStatus({ type: 'error', message: (error as Error).message });
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +101,16 @@ export default function AdminProgramSearchPage() {
   useEffect(() => {
     loadPrograms(null);
   }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setToastMessage('');
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [toastMessage]);
 
   const filteredPrograms = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -115,45 +133,69 @@ export default function AdminProgramSearchPage() {
     setOpenProgramId(null);
     setForm(blankForm());
     setStatus({ type: '', message: '' });
+    setHasUnsavedChanges(false);
+    setIsBasicDirty(false);
+    setIsRequirementDirty(false);
+    setDirtyCourseIndexes(new Set());
+    setIsCourseSectionDirty(false);
   }
 
-  function startEdit(program) {
+  function startEdit(program: AcademicProgram) {
     setEditorMode('edit');
     setEditingProgramId(program.id);
     setForm(formFromProgram(program));
     setOpenProgramId(program.id);
     setStatus({ type: '', message: '' });
+    setHasUnsavedChanges(false);
+    setIsBasicDirty(false);
+    setIsRequirementDirty(false);
+    setDirtyCourseIndexes(new Set());
+    setIsCourseSectionDirty(false);
   }
 
   function closeEditor() {
     setEditorMode(null);
     setEditingProgramId(null);
     setForm(blankForm());
+    setHasUnsavedChanges(false);
+    setIsBasicDirty(false);
+    setIsRequirementDirty(false);
+    setDirtyCourseIndexes(new Set());
+    setIsCourseSectionDirty(false);
+    setIsCloseConfirmOpen(false);
   }
 
-  async function requestCloseEditor() {
-    if (editorMode !== 'edit') {
+  function requestCloseEditor() {
+    if (!hasUnsavedChanges) {
       closeEditor();
       return;
     }
 
-    const shouldSave = window.confirm('수정하시겠습니까?');
-    if (shouldSave) {
-      await saveCurrentForm();
-      return;
-    }
+    setIsCloseConfirmOpen(true);
+  }
 
+  async function confirmSaveAndClose() {
+    setIsCloseConfirmOpen(false);
+    await saveCurrentForm(true);
+  }
+
+  function discardChangesAndClose() {
+    setIsCloseConfirmOpen(false);
     closeEditor();
   }
 
-  function updateProgramField(field, value) {
+  function updateProgramField(field: string, value: string) {
+    setHasUnsavedChanges(true);
+    setIsBasicDirty(true);
     setForm((current) => ({
       ...current,
       [field]: field === 'curriculum_year' ? Number(value) : value,
     }));
   }
 
-  function updateRequirement(field, value) {
+  function updateRequirement(field: string, value: string) {
+    setHasUnsavedChanges(true);
+    setIsRequirementDirty(true);
     setForm((current) => ({
       ...current,
       graduation_requirement: {
@@ -163,7 +205,10 @@ export default function AdminProgramSearchPage() {
     }));
   }
 
-  function updateCourse(index, field, value) {
+  function updateCourse(index: number, field: string, value: string) {
+    setHasUnsavedChanges(true);
+    setIsCourseSectionDirty(true);
+    setDirtyCourseIndexes((current) => new Set(current).add(index));
     setForm((current) => ({
       ...current,
       courses: current.courses.map((course, courseIndex) => (
@@ -173,80 +218,191 @@ export default function AdminProgramSearchPage() {
   }
 
   function addCourse() {
-    setForm((current) => ({ ...current, courses: [...current.courses, { ...emptyCourse }] }));
+    setHasUnsavedChanges(true);
+    setIsCourseSectionDirty(true);
+    setDirtyCourseIndexes((current) => {
+      const next = new Set<number>([0]);
+      current.forEach((index) => next.add(index + 1));
+      return next;
+    });
+    setForm((current) => ({ ...current, courses: [{ ...emptyCourse }, ...current.courses] }));
   }
 
-  function removeCourse(index) {
+  function removeCourse(index: number) {
+    setHasUnsavedChanges(true);
+    setIsCourseSectionDirty(true);
+    setDirtyCourseIndexes((current) => {
+      const next = new Set<number>();
+      current.forEach((dirtyIndex) => {
+        if (dirtyIndex < index) next.add(dirtyIndex);
+        if (dirtyIndex > index) next.add(dirtyIndex - 1);
+      });
+      return next;
+    });
     setForm((current) => ({
       ...current,
-      courses: current.courses.length === 1 ? [{ ...emptyCourse }] : current.courses.filter((_, courseIndex) => courseIndex !== index),
+      courses: current.courses.length === 1 ? [{ ...emptyCourse }] : current.courses.filter((_, i) => i !== index),
     }));
   }
 
-  function buildPayload() {
+  function isDraftCourse(course: CurriculumCourseForm) {
+    return !course.course_number.trim() && !course.course_name_ko.trim() && !course.course_name_en.trim() && !course.description.trim() && !course.recommended_semester.trim();
+  }
+
+  function isCompleteCourse(course: CurriculumCourseForm) {
+    return Boolean(course.completion_category.trim() && course.course_number.trim() && course.course_name_ko.trim() && course.recommended_semester.trim());
+  }
+
+  function buildPayload(): AcademicProgramPayload {
+    const curriculumYear = Number(form.curriculum_year);
+    const completedCourses = form.courses.filter(isCompleteCourse);
+    const incompleteCourses = form.courses.filter((course) => !isDraftCourse(course) && !isCompleteCourse(course));
+
+    if (!form.department.trim()) {
+      throw new Error('학부/학과를 입력해주세요.');
+    }
+
+    if (!Number.isInteger(curriculumYear) || curriculumYear < 2000 || curriculumYear > 2100) {
+      throw new Error('교과과정 연도는 2000년부터 2100년 사이의 숫자로 입력해주세요.');
+    }
+
+    if (incompleteCourses.length > 0) {
+      throw new Error('작성 중인 교과목의 교과목 번호, 한글명, 이수학기를 모두 입력하거나 빈 교과목 행을 삭제해주세요.');
+    }
+
+    if (completedCourses.some((course) => Number(course.credits) < 1)) {
+      throw new Error('교과목 이수학점은 1 이상이어야 합니다.');
+    }
+
     return {
       department: form.department.trim(),
       major: form.major.trim() || null,
-      curriculum_year: Number(form.curriculum_year),
-      graduation_requirement: form.graduation_requirement,
-      courses: form.courses
-        .filter((course) => course.completion_category.trim() && course.course_number.trim() && course.course_name_ko.trim() && course.recommended_semester.trim())
-        .map((course) => ({
-          completion_category: course.completion_category.trim(),
-          course_number: course.course_number.trim(),
-          course_name_ko: course.course_name_ko.trim(),
-          course_name_en: course.course_name_en.trim() || null,
-          description: course.description.trim() || null,
-          recommended_semester: course.recommended_semester.trim(),
-          credits: Number(course.credits),
-        })),
+      curriculum_year: curriculumYear,
+      graduation_requirement: {
+        liberal_required: Number(form.graduation_requirement.liberal_required),
+        liberal_elective: Number(form.graduation_requirement.liberal_elective),
+        major_basic: Number(form.graduation_requirement.major_basic),
+        major_required: Number(form.graduation_requirement.major_required),
+        major_elective: Number(form.graduation_requirement.major_elective),
+        general_elective: Number(form.graduation_requirement.general_elective),
+        total_credits: Number(form.graduation_requirement.total_credits),
+      },
+      courses: completedCourses.map((course) => ({
+        completion_category: course.completion_category.trim(),
+        course_number: course.course_number.trim(),
+        course_name_ko: course.course_name_ko.trim(),
+        course_name_en: course.course_name_en.trim() || null,
+        description: course.description.trim() || null,
+        recommended_semester: course.recommended_semester.trim(),
+        credits: Number(course.credits),
+      })),
     };
   }
 
-  async function saveCurrentForm() {
+  async function saveCurrentForm(closeAfter = false) {
     setStatus({ type: '', message: '' });
     setIsSubmitting(true);
 
     try {
       const token = window.localStorage.getItem('pnu-pathfinder-token');
       const payload = buildPayload();
-      const saved = editorMode === 'edit'
-        ? await updateAcademicProgram(token, editingProgramId, payload)
-        : await createAcademicProgram(token, payload);
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new Error('저장 데이터 형식이 올바르지 않습니다.');
+      }
+      if (!payload.graduation_requirement || typeof payload.graduation_requirement !== 'object' || Array.isArray(payload.graduation_requirement)) {
+        throw new Error('졸업이수학점 데이터 형식이 올바르지 않습니다.');
+      }
+      if (!Array.isArray(payload.courses)) {
+        throw new Error('교과과정 데이터 형식이 올바르지 않습니다.');
+      }
+      if (payload.courses.some((course) => !course || typeof course !== 'object' || Array.isArray(course))) {
+        throw new Error('교과목 데이터 형식이 올바르지 않습니다.');
+      }
+      if (!token) {
+        throw new Error('관리자 로그인이 필요합니다. 다시 로그인해주세요.');
+      }
 
-      setStatus({ type: 'success', message: editorMode === 'edit' ? '학과 정보가 수정되었습니다.' : '학과 정보가 생성되었습니다.' });
-      closeEditor();
+      let saved;
+      if (editorMode === 'edit') {
+        if (editingProgramId === null) {
+          throw new Error('수정할 학과 정보를 찾지 못했습니다. 다시 편집을 눌러주세요.');
+        }
+        saved = await updateAcademicProgram(token, editingProgramId, payload);
+      } else {
+        saved = await createAcademicProgram(token, payload);
+      }
+
+      setHasUnsavedChanges(false);
+      setIsBasicDirty(false);
+      setIsRequirementDirty(false);
+      setDirtyCourseIndexes(new Set());
+      setIsCourseSectionDirty(false);
+      setToastMessage('저장되었습니다!');
+      setPrograms((current) => {
+        const exists = current.some((program) => program.id === saved.id);
+        return exists ? current.map((program) => (program.id === saved.id ? saved : program)) : [saved, ...current];
+      });
+      setForm(formFromProgram(saved));
+      setEditingProgramId(saved.id);
+      setOpenProgramId(saved.id);
+
+      if (closeAfter) {
+        closeEditor();
+      } else if (editorMode === 'create') {
+        setEditorMode('edit');
+      }
+
       await loadPrograms(saved.id);
     } catch (error) {
-      setStatus({ type: 'error', message: error.message });
+      setStatus({ type: 'error', message: (error as Error).message });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    await saveCurrentForm();
-  }
-
-  async function handleDelete(program) {
+  async function handleDelete(program: AcademicProgram) {
     const confirmed = window.confirm(`${program.department} ${program.major || ''} ${program.curriculum_year} 교과과정을 삭제할까요?`);
     if (!confirmed) return;
 
     try {
-      const token = window.localStorage.getItem('pnu-pathfinder-token');
+      const token = window.localStorage.getItem('pnu-pathfinder-token')!;
       await deleteAcademicProgram(token, program.id);
-      setStatus({ type: 'success', message: '학과 정보가 삭제되었습니다.' });
+      setToastMessage('학과 정보가 삭제되었습니다.');
       if (editingProgramId === program.id) closeEditor();
       await loadPrograms(null);
     } catch (error) {
-      setStatus({ type: 'error', message: error.message });
+      setStatus({ type: 'error', message: (error as Error).message });
     }
   }
 
   return (
     <div className="flex-1 overflow-y-auto chat-scroll p-6">
       <div className="mx-auto max-w-6xl">
+        {toastMessage && (
+          <div className="pointer-events-none fixed inset-x-4 top-1/2 z-50 flex -translate-y-1/2 justify-center">
+            <div className="w-full max-w-sm rounded-xl bg-emerald-600 px-5 py-4 text-center text-sm font-semibold text-white shadow-2xl shadow-emerald-950/40 md:max-w-md">
+              {toastMessage}
+            </div>
+          </div>
+        )}
+
+        {isCloseConfirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4" role="dialog" aria-modal="true" aria-labelledby="close-confirm-title">
+            <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl">
+              <h3 id="close-confirm-title" className="text-base font-semibold text-slate-100">모두 저장하시겠습니까?</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">네를 누르면 변경 사항을 저장하고, 아니요를 누르면 저장하지 않고 원래 상태로 돌아갑니다.</p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button type="button" className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60" onClick={confirmSaveAndClose} disabled={isSubmitting}>
+                  네
+                </button>
+                <button type="button" className="rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60" onClick={discardChangesAndClose} disabled={isSubmitting}>
+                  아니요
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600">
@@ -267,8 +423,13 @@ export default function AdminProgramSearchPage() {
           <ProgramEditor
             mode="create"
             form={form}
+            status={status}
             isSubmitting={isSubmitting}
-            onSubmit={handleSubmit}
+            isBasicDirty={isBasicDirty}
+            isRequirementDirty={isRequirementDirty}
+            dirtyCourseIndexes={dirtyCourseIndexes}
+            isCourseSectionDirty={isCourseSectionDirty}
+            onSave={saveCurrentForm}
             onClose={requestCloseEditor}
             onProgramChange={updateProgramField}
             onRequirementChange={updateRequirement}
@@ -290,8 +451,8 @@ export default function AdminProgramSearchPage() {
           </label>
         </section>
 
-        {status.message && (
-          <p className={`mb-4 rounded-lg px-3 py-2 text-sm ${status.type === 'error' ? 'bg-rose-950 text-rose-200' : 'bg-emerald-950 text-emerald-200'}`}>
+        {status.message && editorMode === null && (
+          <p className={`mb-4 whitespace-pre-line rounded-lg px-3 py-2 text-sm ${status.type === 'error' ? 'bg-rose-950 text-rose-200' : 'bg-emerald-950 text-emerald-200'}`}>
             {status.message}
           </p>
         )}
@@ -334,8 +495,13 @@ export default function AdminProgramSearchPage() {
                       <ProgramEditor
                         mode="edit"
                         form={form}
+                        status={status}
                         isSubmitting={isSubmitting}
-                        onSubmit={handleSubmit}
+                        isBasicDirty={isBasicDirty}
+                        isRequirementDirty={isRequirementDirty}
+                        dirtyCourseIndexes={dirtyCourseIndexes}
+                        isCourseSectionDirty={isCourseSectionDirty}
+                        onSave={saveCurrentForm}
                         onClose={requestCloseEditor}
                         onProgramChange={updateProgramField}
                         onRequirementChange={updateRequirement}
@@ -384,7 +550,38 @@ export default function AdminProgramSearchPage() {
   );
 }
 
-function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramChange, onRequirementChange, onCourseChange, onCourseAdd, onCourseRemove, embedded = false }) {
+function SectionSaveButton({ isSubmitting, isDirty, onSave }: { isSubmitting: boolean; isDirty: boolean; onSave: () => void }) {
+  return (
+    <button
+      type="button"
+      disabled={isSubmitting || !isDirty}
+      onClick={() => onSave()}
+      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 enabled:bg-emerald-700 enabled:hover:bg-emerald-600"
+    >
+      <Save className="h-3.5 w-3.5" />
+      {isSubmitting ? '저장 중...' : '저장'}
+    </button>
+  );
+}
+
+function ProgramEditor({ mode, form, status, isSubmitting, isBasicDirty, isRequirementDirty, dirtyCourseIndexes, isCourseSectionDirty, onSave, onClose, onProgramChange, onRequirementChange, onCourseChange, onCourseAdd, onCourseRemove, embedded = false }: {
+  mode: string;
+  form: ReturnType<typeof blankForm>;
+  status: { type: string; message: string };
+  isSubmitting: boolean;
+  isBasicDirty: boolean;
+  isRequirementDirty: boolean;
+  dirtyCourseIndexes: Set<number>;
+  isCourseSectionDirty: boolean;
+  onSave: () => void;
+  onClose: () => void;
+  onProgramChange: (field: string, value: string) => void;
+  onRequirementChange: (field: string, value: string) => void;
+  onCourseChange: (index: number, field: string, value: string) => void;
+  onCourseAdd: () => void;
+  onCourseRemove: (index: number) => void;
+  embedded?: boolean;
+}) {
   const [courseQuery, setCourseQuery] = useState('');
 
   const visibleCourses = useMemo(() => {
@@ -399,12 +596,12 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
       course.course_name_en,
       course.description,
       course.recommended_semester,
-      course.credits,
-    ].filter(Boolean).join(' ').toLowerCase().includes(keyword));
+      String(course.credits),
+    ].join(' ').toLowerCase().includes(keyword));
   }, [form.courses, courseQuery]);
 
   return (
-    <form className={`${embedded ? 'space-y-6' : 'mb-6 space-y-6 rounded-xl border border-emerald-800 bg-slate-900 p-6'}`} onSubmit={onSubmit}>
+    <form className={`${embedded ? 'space-y-6' : 'mb-6 space-y-6 rounded-xl border border-emerald-800 bg-slate-900 p-6'}`} onSubmit={(event) => { event.preventDefault(); onSave(); }}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-slate-100">{mode === 'edit' ? '학과 정보 편집' : '새 학과 생성'}</h3>
@@ -415,8 +612,17 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
         </button>
       </div>
 
+      {status.message && (
+        <p className={`whitespace-pre-line rounded-lg px-3 py-2 text-sm ${status.type === 'error' ? 'bg-rose-950 text-rose-200' : 'bg-emerald-950 text-emerald-200'}`}>
+          {status.message}
+        </p>
+      )}
+
       <section className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-        <h4 className="mb-4 font-semibold text-slate-100">기본 정보</h4>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h4 className="font-semibold text-slate-100">기본 정보</h4>
+          {mode === 'edit' && <SectionSaveButton isSubmitting={isSubmitting} isDirty={isBasicDirty} onSave={onSave} />}
+        </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <TextInput label="학부/학과" value={form.department} onChange={(value) => onProgramChange('department', value)} placeholder="의생명융합공학부" required />
           <TextInput label="전공" value={form.major} onChange={(value) => onProgramChange('major', value)} placeholder="첨단바이오공학전공" />
@@ -425,7 +631,10 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
       </section>
 
       <section className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-        <h4 className="mb-4 font-semibold text-slate-100">졸업이수학점</h4>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h4 className="font-semibold text-slate-100">졸업이수학점</h4>
+          {mode === 'edit' && <SectionSaveButton isSubmitting={isSubmitting} isDirty={isRequirementDirty} onSave={onSave} />}
+        </div>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
           <NumberInput label="교양필수" field="liberal_required" value={form.graduation_requirement.liberal_required} onChange={onRequirementChange} />
           <NumberInput label="교양선택" field="liberal_elective" value={form.graduation_requirement.liberal_elective} onChange={onRequirementChange} />
@@ -440,11 +649,12 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
       </section>
 
       <section className="rounded-lg border border-slate-700 bg-slate-900 p-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h4 className="font-semibold text-slate-100">교과과정</h4>
+          {mode === 'edit' && <SectionSaveButton isSubmitting={isSubmitting} isDirty={isCourseSectionDirty} onSave={onSave} />}
+        </div>
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h4 className="font-semibold text-slate-100">교과과정</h4>
-            <p className="mt-1 text-xs text-slate-500">검색해서 필요한 교과목만 빠르게 수정할 수 있습니다.</p>
-          </div>
+          <p className="text-xs text-slate-500">검색해서 필요한 교과목만 빠르게 수정할 수 있습니다.</p>
           <button type="button" className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-3 py-2 text-sm hover:bg-slate-600" onClick={onCourseAdd}>
             <Plus className="h-4 w-4" />
             교과목 추가
@@ -471,9 +681,12 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
             <div key={`${index}-${course.course_number}`} className="rounded-lg border border-slate-700 bg-slate-950 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-300">교과목 {index + 1}</p>
-                <button type="button" className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-rose-300" onClick={() => onCourseRemove(index)} aria-label="교과목 삭제">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {mode === 'edit' && <SectionSaveButton isSubmitting={isSubmitting} isDirty={dirtyCourseIndexes.has(index)} onSave={onSave} />}
+                  <button type="button" className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-rose-300" onClick={() => onCourseRemove(index)} aria-label="교과목 삭제">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <SelectInput label="이수 구분" value={course.completion_category} onChange={(value) => onCourseChange(index, 'completion_category', value)} options={categoryOptions} />
@@ -488,17 +701,24 @@ function ProgramEditor({ mode, form, isSubmitting, onSubmit, onClose, onProgramC
           ))}
         </div>
       </section>
+      {mode === 'create' && (
+        <button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => onSave()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" />
+          {isSubmitting ? '저장 중...' : '학과 생성 저장'}
+        </button>
+      )}
 
-      <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
-        <Save className="h-4 w-4" />
-        {isSubmitting ? '저장 중...' : mode === 'edit' ? '수정 저장' : '생성 저장'}
-      </button>
     </form>
   );
 }
 
-function buildCourseGroups(courses) {
-  const used = new Set();
+function buildCourseGroups(courses: CurriculumCourse[]) {
+  const used = new Set<number>();
   const groups = categoryGroups
     .map((group) => {
       const groupedCourses = courses.filter((course) => group.matches.includes(course.completion_category));
@@ -512,7 +732,7 @@ function buildCourseGroups(courses) {
   return groups;
 }
 
-function RequirementBadge({ label, value, wide = false }) {
+function RequirementBadge({ label, value, wide = false }: { label: string; value: number; wide?: boolean }) {
   return (
     <div className={`rounded-lg border border-slate-700 bg-slate-900 px-3 py-3 ${wide ? 'md:col-span-6' : ''}`}>
       <p className="text-xs text-slate-500">{label}</p>
@@ -521,8 +741,8 @@ function RequirementBadge({ label, value, wide = false }) {
   );
 }
 
-function CourseCategory({ title, courses }) {
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
+function CourseCategory({ title, courses }: { title: string; courses: CurriculumCourse[] }) {
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
 
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
@@ -584,7 +804,10 @@ function CourseCategory({ title, courses }) {
   );
 }
 
-function TextInput({ label, value, onChange, placeholder, type = 'text', required = false, min = undefined }: { label: string; value: string | number; onChange: (value: string) => void; placeholder: string; type?: string; required?: boolean; min?: string }) {
+function TextInput({ label, value, onChange, placeholder, type = 'text', required = false, min = undefined }: {
+  label: string; value: string | number; onChange: (value: string) => void;
+  placeholder: string; type?: string; required?: boolean; min?: string;
+}) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-300">{label}</span>
@@ -593,7 +816,9 @@ function TextInput({ label, value, onChange, placeholder, type = 'text', require
   );
 }
 
-function TextAreaInput({ label, value, onChange, placeholder, className = '' }) {
+function TextAreaInput({ label, value, onChange, placeholder, className = '' }: {
+  label: string; value: string; onChange: (value: string) => void; placeholder: string; className?: string;
+}) {
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 block text-sm font-medium text-slate-300">{label}</span>
@@ -602,7 +827,9 @@ function TextAreaInput({ label, value, onChange, placeholder, className = '' }) 
   );
 }
 
-function NumberInput({ label, field, value, onChange }) {
+function NumberInput({ label, field, value, onChange }: {
+  label: string; field: string; value: number; onChange: (field: string, value: string) => void;
+}) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-300">{label}</span>
@@ -611,7 +838,9 @@ function NumberInput({ label, field, value, onChange }) {
   );
 }
 
-function SelectInput({ label, value, onChange, options }) {
+function SelectInput({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (value: string) => void; options: string[];
+}) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-300">{label}</span>

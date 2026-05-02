@@ -1,6 +1,15 @@
 import { FileText, GitBranch, IdCard, KeyRound, LibraryBig, LogOut, Menu, UserRoundPlus } from 'lucide-react';
+import type { AppIcon, PageId, UserSession } from '../types';
 
-export default function Header({ currentUser, onLogout, onMenu, onHome, onNavigate }) {
+interface HeaderProps {
+  currentUser: UserSession | null;
+  onLogout: () => void;
+  onMenu: () => void;
+  onHome: () => void;
+  onNavigate: (page: PageId) => void;
+}
+
+export default function Header({ currentUser, onLogout, onMenu, onHome, onNavigate }: HeaderProps) {
   const isAdmin = currentUser?.role === 'admin';
 
   return (
@@ -46,7 +55,13 @@ export default function Header({ currentUser, onLogout, onMenu, onHome, onNaviga
   );
 }
 
-function NavButton({ icon: Icon, label, onClick }) {
+interface NavButtonProps {
+  icon: AppIcon;
+  label: string;
+  onClick: () => void;
+}
+
+function NavButton({ icon: Icon, label, onClick }: NavButtonProps) {
   return (
     <button className="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition flex items-center gap-2" onClick={onClick} aria-label={label} title={label}>
       <Icon className="w-4 h-4" />

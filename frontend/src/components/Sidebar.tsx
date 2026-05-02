@@ -1,6 +1,10 @@
 import { Plus } from 'lucide-react';
 
-export default function Sidebar({ isOpen }) {
+interface SidebarProps {
+  isOpen: boolean;
+}
+
+export default function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside className={`${isOpen ? 'absolute z-50 h-full flex' : 'hidden'} w-64 bg-slate-900 border-r border-slate-800 flex-col lg:relative lg:z-auto lg:h-auto lg:flex shrink-0`}>
       <div className="p-4 border-b border-slate-800">
@@ -21,7 +25,12 @@ export default function Sidebar({ isOpen }) {
   );
 }
 
-function HistoryButton({ active = false, label }) {
+interface HistoryButtonProps {
+  active?: boolean;
+  label: string;
+}
+
+function HistoryButton({ active = false, label }: HistoryButtonProps) {
   return (
     <button className={`chat-item w-full text-left px-3 py-2.5 rounded-lg text-sm truncate ${active ? 'bg-slate-800 text-slate-200' : 'hover:bg-slate-800 text-slate-400'}`}>
       {label}

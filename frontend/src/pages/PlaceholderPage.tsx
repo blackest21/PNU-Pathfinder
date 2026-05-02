@@ -1,4 +1,12 @@
-export default function PlaceholderPage({ title, icon: Icon, text }) {
+import type { AppIcon } from '../types';
+
+interface PlaceholderPageProps {
+  title: string;
+  icon: AppIcon;
+  text: string;
+}
+
+export default function PlaceholderPage({ title, icon: Icon, text }: PlaceholderPageProps) {
   return (
     <div className="flex-1 overflow-y-auto chat-scroll p-6">
       <div className="max-w-4xl mx-auto">

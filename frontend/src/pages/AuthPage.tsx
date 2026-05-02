@@ -2,8 +2,19 @@ import { useState } from 'react';
 import { KeyRound, UserRoundPlus } from 'lucide-react';
 import { login, signup } from '../services/authApi';
 import { adminLogin } from '../services/adminApi';
+import type { AuthResult } from '../types';
 
-const initialForm = {
+interface AuthFormState {
+  name: string;
+  student_id: string;
+  password: string;
+  department: string;
+  major: string;
+  career_goal: string;
+  privacy_consent: boolean;
+}
+
+const initialForm: AuthFormState = {
   name: '',
   student_id: '',
   password: '',
@@ -13,7 +24,11 @@ const initialForm = {
   privacy_consent: false,
 };
 
-export default function AuthPage({ mode, onSwitchMode, onAuthSuccess }) {
+export default function AuthPage({ mode, onSwitchMode, onAuthSuccess }: {
+  mode: 'login' | 'signup';
+  onSwitchMode: (mode: 'login' | 'signup') => void;
+  onAuthSuccess: (result: AuthResult) => void;
+}) {
   const isSignup = mode === 'signup';
   const Icon = isSignup ? UserRoundPlus : KeyRound;
   const [form, setForm] = useState(initialForm);
@@ -30,12 +45,11 @@ export default function AuthPage({ mode, onSwitchMode, onAuthSuccess }) {
   const isLoginValid = form.student_id.trim() && (isAdminLogin ? form.password.trim() : form.password.length >= 8);
   const canSubmit = isSignup ? isSignupValid : isLoginValid;
 
-  function updateField(field, value) {
+  function updateField<Key extends keyof AuthFormState>(field: Key, value: AuthFormState[Key]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (!canSubmit || isSubmitting) return;
 
     setStatus({ type: '', message: '' });
@@ -65,7 +79,7 @@ export default function AuthPage({ mode, onSwitchMode, onAuthSuccess }) {
       setStatus({ type: 'success', message: isSignup ? '회원가입이 완료되었습니다.' : '로그인되었습니다.' });
       onAuthSuccess(authResult);
     } catch (error) {
-      setStatus({ type: 'error', message: isAdminLogin ? '해당 학번이 없습니다.' : error.message });
+      setStatus({ type: 'error', message: isAdminLogin ? '해당 학번이 없습니다.' : (error as Error).message });
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +106,7 @@ export default function AuthPage({ mode, onSwitchMode, onAuthSuccess }) {
           </div>
         </div>
 
-        <form className="space-y-4 rounded-xl border border-slate-700 bg-slate-800 p-6" onSubmit={handleSubmit}>
+        <form className="space-y-4 rounded-xl border border-slate-700 bg-slate-800 p-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           {isSignup && (
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-300">이름</span>

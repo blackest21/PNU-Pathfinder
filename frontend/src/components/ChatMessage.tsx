@@ -1,4 +1,10 @@
-export default function ChatMessage({ message }) {
+import type { ChatMessageItem } from '../types';
+
+interface ChatMessageProps {
+  message: ChatMessageItem;
+}
+
+export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
   return (

@@ -8,26 +8,32 @@ import AuthPage from './pages/AuthPage';
 import ChatPage from './pages/ChatPage';
 import DataPage from './pages/DataPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import type { AuthResult, PageId, UserSession } from './types';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('chat');
+  const [currentPage, setCurrentPage] = useState<PageId>('chat');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
 
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
     const savedUser = window.localStorage.getItem('pnu-pathfinder-user');
     if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setCurrentUser(parsedUser);
-      if (parsedUser.role === 'admin') {
-        setCurrentPage('admin-program-search');
+      try {
+        const parsedUser = JSON.parse(savedUser) as UserSession;
+        setCurrentUser(parsedUser);
+        if (parsedUser.role === 'admin') {
+          setCurrentPage('admin-program-search');
+        }
+      } catch {
+        window.localStorage.removeItem('pnu-pathfinder-token');
+        window.localStorage.removeItem('pnu-pathfinder-user');
       }
     }
   }, []);
 
-  function handleAuthSuccess(authResult) {
+  function handleAuthSuccess(authResult: AuthResult) {
     window.localStorage.setItem('pnu-pathfinder-token', authResult.access_token);
     window.localStorage.setItem('pnu-pathfinder-user', JSON.stringify(authResult.user));
     setCurrentUser(authResult.user);
