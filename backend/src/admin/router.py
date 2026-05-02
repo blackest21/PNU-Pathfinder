@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -10,9 +12,9 @@ from src.models import AcademicProgram, CurriculumCourse, GraduationRequirement
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 bearer_scheme = HTTPBearer()
-ADMIN_ID = "root"
-ADMIN_PASSWORD = "3011"
-ADMIN_TOKEN = "pnu-pathfinder-admin-local-token"
+ADMIN_ID = os.getenv("ADMIN_ID", "root")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "3011")
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "pnu-pathfinder-admin-local-token")
 
 
 def require_admin(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
