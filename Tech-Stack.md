@@ -19,6 +19,7 @@
 | **Auth** | PyJWT `2.12.1` + passlib[bcrypt] `1.7.4` | `backend/src/auth/` |
 | **Password Hashing** | bcrypt `4.3.0` | `backend/requirements.txt` |
 | **Config** | python-dotenv `1.2.2` | `backend/.env.example` |
+| **OpenAI SDK** | openai `2.33.0` | `backend/requirements.txt` |
 | **API Docs** | FastAPI OpenAPI / Swagger UI | `http://localhost:8000/docs` |
 
 > **Note:** The ORM is synchronous (standard `Session`, not `AsyncSession`). Do not introduce async SQLAlchemy without a team decision and updating this table.
@@ -85,6 +86,8 @@ JWT_SECRET=pnu-pathfinder-local-dev-secret
 ADMIN_ID=root
 ADMIN_PASSWORD=3011
 ADMIN_TOKEN=pnu-pathfinder-admin-local-token
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 > Development defaults exist in code for local convenience. Production deployments must provide strong values through environment variables.

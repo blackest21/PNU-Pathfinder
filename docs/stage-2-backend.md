@@ -29,12 +29,24 @@
 - [x] `GET /api/graduation/recommend` 엔드포인트 추가
 
 ### Phase 2-C: OpenAI 챗봇
-- [ ] `pip install openai` 및 `requirements.txt` 업데이트
-- [ ] `backend/src/chat/` 라우터 생성
-  - [ ] `POST /api/chat` — 메시지 전송, SSE 스트리밍 응답
-- [ ] `backend/src/services/chat.py` 작성
-  - [ ] 시스템 프롬프트: 학생 이수현황 + 졸업요건 컨텍스트 주입
-  - [ ] OpenAI gpt-4o-mini 연동
+- [x] `pip install openai` 및 `requirements.txt` 업데이트
+- [x] `backend/src/chat/` 라우터 생성
+  - [x] `POST /api/chat` — 메시지 전송, 로컬 JSON 응답
+- [x] `backend/src/services/chat.py` 작성
+  - [x] 학생 이수현황 + 졸업요건 컨텍스트 기반 로컬 응답
+  - [ ] SSE 스트리밍 응답
+  - [x] OpenAI gpt-4o-mini 연동
+
+### Phase 2-D: 크롤러/Ingestion 기반
+- [x] `backend/migrations/003_ingestion_documents.sql` 생성
+- [x] `IngestedDocument`, `DocumentChunk` 모델 추가
+- [x] `backend/src/services/ingestion.py` 작성
+  - [x] 교과과정/졸업요건 upsert
+  - [x] 문서 텍스트 저장
+  - [x] 문서 chunking
+- [x] `POST /api/admin/crawl/run` 관리자 수동 실행 API 추가
+- [ ] 실제 외부 사이트 크롤러 구현
+- [ ] VectorDB 저장 방식 확정
 
 ---
 
@@ -67,6 +79,7 @@ CREATE TABLE course_records (
 | `DELETE` | `/api/courses/{id}` | 수강 이력 삭제 |
 | `GET` | `/api/graduation/progress` | 졸업요건 충족률 계산 |
 | `GET` | `/api/graduation/recommend` | 다음 학기 추천 |
+| `POST` | `/api/admin/crawl/run` | 수집 데이터 수동 반영 |
 | `POST` | `/api/chat` | AI 챗봇 (SSE 스트리밍) |
 
 ---

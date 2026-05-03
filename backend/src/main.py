@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.admin.router import router as admin_router
 from src.auth.router import router as auth_router
+from src.chat.router import router as chat_router
 from src.courses.router import router as courses_router
 from src.database import init_db
 from src.graduation.router import router as graduation_router
@@ -30,6 +31,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(courses_router)
 app.include_router(graduation_router)
+app.include_router(chat_router)
 
 
 @app.get("/api/health")

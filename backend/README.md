@@ -49,7 +49,9 @@ PostgreSQL
   ├─ academic_programs
   ├─ curriculum_courses
   ├─ graduation_requirements
-  └─ course_records
+  ├─ course_records
+  ├─ ingested_documents
+  └─ document_chunks
 
 Crawler / Ingestion
   ├─ structured parser → PostgreSQL
@@ -116,6 +118,7 @@ Crawler
 - `GET /api/admin/programs` — 교과과정 목록
 - `PUT /api/admin/programs/{program_id}` — 교과과정 수정
 - `DELETE /api/admin/programs/{program_id}` — 교과과정 삭제
+- `POST /api/admin/crawl/run` — 수집된 교과과정/문서 데이터 수동 반영
 
 ### Course Records
 
@@ -127,6 +130,10 @@ Crawler
 
 - `GET /api/graduation/progress` — 졸업요건 충족률 계산
 - `GET /api/graduation/recommend` — 다음 수강 과목/재수강 추천
+
+### Chat
+
+- `POST /api/chat` — 학생 이수현황 기반 상담 응답 (`OPENAI_API_KEY`가 있으면 OpenAI, 없으면 로컬 fallback)
 
 ---
 
@@ -175,22 +182,24 @@ Crawler
 
 ### Stage 6. 크롤러/데이터 수집
 
-- [ ] 크롤러 폴더 구조 생성
+- [x] 수집 데이터 저장 테이블 생성
+- [x] 교과과정/졸업요건 정형 데이터 upsert 로직 작성
+- [x] 공지/PDF/문서 텍스트 저장 로직 작성
+- [x] 문서 chunking 로직 작성
+- [x] 관리자 수동 실행 API 추가
+- [ ] 실제 크롤러 폴더 구조 생성
 - [ ] 수집 대상 URL 설정 구조 작성
-- [ ] 교과과정/졸업요건 정형 파서 작성
-- [ ] PostgreSQL upsert 로직 작성
-- [ ] 공지/PDF/문서 수집 로직 작성
-- [ ] 문서 chunking 로직 작성
 - [ ] VectorDB 저장 방식 확정
-- [ ] 관리자 수동 실행 API 추가
 
 ### Stage 7. AI 상담/RAG
 
-- [ ] OpenAI SDK 추가
-- [ ] 채팅 요청/응답 스키마 작성
-- [ ] 학생 수강 이력 + 졸업요건 컨텍스트 생성
+- [x] OpenAI SDK 추가
+- [x] 채팅 요청/응답 스키마 작성
+- [x] 학생 수강 이력 + 졸업요건 컨텍스트 생성
+- [x] `/api/chat` 엔드포인트 작성
+- [x] OpenAI 없이 동작하는 로컬 상담 응답 작성
+- [x] OpenAI Responses API 선택적 연동
 - [ ] VectorDB 검색 결과 컨텍스트 추가
-- [ ] `/api/chat` 엔드포인트 작성
 - [ ] SSE 스트리밍 또는 일반 JSON 응답 방식 확정
 
 ### Stage 8. 배포 전 정리
@@ -211,6 +220,7 @@ backend/
   migrations/
     001_initial_schema.sql
     002_course_records.sql
+    003_ingestion_documents.sql
   seeds/
     001_academic_programs.sql
   src/
@@ -227,8 +237,13 @@ backend/
     graduation/
       router.py
       schemas.py
+    chat/
+      router.py
+      schemas.py
     services/
       graduation.py
+      ingestion.py
+      chat.py
     database.py
     main.py
     models.py
@@ -253,6 +268,7 @@ backend/
 | `src/courses/` | 수강 이력 API가 독립 도메인이므로 유지합니다. |
 | `src/graduation/` | 졸업요건 API 스키마/라우터를 담당하므로 유지합니다. |
 | `src/services/graduation.py` | 졸업요건 계산 로직은 라우터보다 서비스 계층에 두는 것이 테스트와 재사용에 좋습니다. |
+| `src/services/ingestion.py` | 크롤러가 수집한 정형/비정형 데이터를 DB에 반영하는 공통 로직입니다. |
 | `migrations/` | DB 스키마 변경 이력을 설명하고 수동 적용할 수 있게 해줍니다. |
 | `seeds/` | 발표/테스트용 초기 교과과정 데이터를 재현하는 데 필요합니다. |
 | `.env.example` | 팀원이 로컬 환경변수를 맞출 때 필요합니다. 실제 `.env`는 커밋하지 않습니다. |

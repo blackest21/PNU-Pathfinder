@@ -31,12 +31,19 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── router.py        ← GET /api/graduation/progress, /recommend
 │   │   └── schemas.py       ← Pydantic models for progress/recommendation responses
+│   ├── chat/
+│   │   ├── __init__.py
+│   │   ├── router.py        ← POST /api/chat
+│   │   └── schemas.py       ← Pydantic models for chat request/response
 │   └── services/
 │       ├── __init__.py
-│       └── graduation.py    ← graduation progress and recommendation logic
+│       ├── graduation.py    ← graduation progress and recommendation logic
+│       ├── ingestion.py     ← structured data/document ingestion helpers
+│       └── chat.py          ← local chat response assembly
 ├── migrations/
 │   ├── 001_initial_schema.sql  ← Raw SQL DDL (no Alembic)
-│   └── 002_course_records.sql  ← Course records table
+│   ├── 002_course_records.sql  ← Course records table
+│   └── 003_ingestion_documents.sql ← Ingested document/chunk tables
 ├── seeds/
 │   └── 001_academic_programs.sql ← Sample data for local dev
 ├── .env.example
@@ -57,6 +64,7 @@ backend/
 | `passlib[bcrypt]` | 1.7.4 | Password hashing |
 | `bcrypt` | 4.3.0 | bcrypt backend for passlib |
 | `python-dotenv` | 1.2.2 | Load `.env` into environment |
+| `openai` | 2.33.0 | Optional OpenAI Responses API client for `/api/chat` |
 
 ---
 
@@ -98,6 +106,7 @@ psql -d pnu_pathfinder -f backend/migrations/001_initial_schema.sql
 
 # Apply later schema changes
 psql -d pnu_pathfinder -f backend/migrations/002_course_records.sql
+psql -d pnu_pathfinder -f backend/migrations/003_ingestion_documents.sql
 
 # Optionally seed data
 psql -d pnu_pathfinder -f backend/seeds/001_academic_programs.sql
@@ -169,3 +178,5 @@ Crawler output should be split by data type.
   - academic regulation text
 
 Graduation calculation must use PostgreSQL, not VectorDB. Vector search is for AI context retrieval, while graduation progress is deterministic rule calculation.
+
+Current prototype ingestion endpoint: `POST /api/admin/crawl/run`. It accepts already-collected structured program data and document text, then writes programs to PostgreSQL and document chunks to `document_chunks`.

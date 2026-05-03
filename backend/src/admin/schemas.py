@@ -61,3 +61,24 @@ class AcademicProgramRead(BaseModel):
     curriculum_year: int
     courses: list[CurriculumCourseRead]
     graduation_requirement: GraduationRequirementRead | None
+
+
+class IngestionDocumentCreate(BaseModel):
+    source_url: str = Field(min_length=1, max_length=500)
+    title: str = Field(min_length=1, max_length=200)
+    category: str = Field(default="notice", min_length=1, max_length=50)
+    content: str = Field(min_length=1)
+
+
+class CrawlRunCreate(BaseModel):
+    programs: list[AcademicProgramCreate] = Field(default_factory=list)
+    documents: list[IngestionDocumentCreate] = Field(default_factory=list)
+
+
+class CrawlRunSummary(BaseModel):
+    programs_created: int
+    programs_updated: int
+    documents_created: int
+    documents_updated: int
+    documents_unchanged: int
+    chunks_written: int

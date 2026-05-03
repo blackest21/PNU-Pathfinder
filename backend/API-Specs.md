@@ -197,6 +197,55 @@ Delete a program and all related courses/requirements (cascade).
 
 ---
 
+#### POST `/api/admin/crawl/run`
+
+Manually apply already-collected crawler/ingestion data. Structured academic programs are upserted into PostgreSQL, and document text is chunked into `document_chunks`.
+
+**Request body**
+```json
+{
+  "programs": [
+    {
+      "department": "string",
+      "major": "string | null",
+      "curriculum_year": 2024,
+      "graduation_requirement": {
+        "liberal_required": 10,
+        "liberal_elective": 15,
+        "major_basic": 25,
+        "major_required": 36,
+        "major_elective": 41,
+        "general_elective": 6,
+        "total_credits": 133
+      },
+      "courses": []
+    }
+  ],
+  "documents": [
+    {
+      "source_url": "https://example.ac.kr/notice/1",
+      "title": "string",
+      "category": "notice",
+      "content": "plain text extracted from HTML/PDF"
+    }
+  ]
+}
+```
+
+**Response** `200 OK`
+```json
+{
+  "programs_created": 0,
+  "programs_updated": 1,
+  "documents_created": 1,
+  "documents_updated": 0,
+  "documents_unchanged": 0,
+  "chunks_written": 3
+}
+```
+
+---
+
 ### Course Records — `/api/courses`
 
 All course record endpoints require student authentication with `Authorization: Bearer <token>`.
@@ -316,6 +365,30 @@ Return recommended next courses and retake candidates for the current student.
 
 ---
 
+### Chat — `/api/chat`
+
+The current prototype returns a JSON answer using student profile, course records, graduation progress, and recommendations. If `OPENAI_API_KEY` is set, it calls OpenAI; otherwise it falls back to a local rule-based response.
+
+#### POST `/api/chat`
+
+**Request body**
+```json
+{
+  "message": "다음 학기에 뭘 들으면 좋을까?"
+}
+```
+
+**Response** `200 OK`
+```json
+{
+  "answer": "학생의 현재 졸업요건 진행률과 추천 과목을 바탕으로 생성된 응답",
+  "used_sources": ["student_profile", "course_records", "graduation_requirements"],
+  "mode": "openai | local"
+}
+```
+
+---
+
 ### Health — `/api/health`
 
 #### GET `/api/health`
@@ -367,10 +440,8 @@ These endpoints do not exist yet. They will be added when the RAG pipeline is im
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/chat` | Send a question, receive an AI answer using student context and retrieved documents |
 | `GET` | `/api/chat/{session_id}/history` | Retrieve conversation history |
 | `GET` | `/api/documents` | List indexed knowledge-base documents |
-| `POST` | `/api/admin/crawl/run` | Manually run crawler/ingestion from admin panel |
 
 ---
 
@@ -378,5 +449,7 @@ These endpoints do not exist yet. They will be added when the RAG pipeline is im
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-03 | Added optional OpenAI chat response with local fallback | Codex |
+| 2026-05-03 | Added admin crawl ingestion endpoint and document chunk tables | Codex |
 | 2026-05-03 | Added course records and graduation APIs | Codex |
 | 2026-05-02 | Rewritten from actual source code | PM |

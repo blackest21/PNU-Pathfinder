@@ -6,9 +6,17 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from src.admin.schemas import AdminLogin, AdminToken, AcademicProgramCreate, AcademicProgramRead
+from src.admin.schemas import (
+    AcademicProgramCreate,
+    AcademicProgramRead,
+    AdminLogin,
+    AdminToken,
+    CrawlRunCreate,
+    CrawlRunSummary,
+)
 from src.database import get_db
 from src.models import AcademicProgram, CurriculumCourse, GraduationRequirement
+from src.services.ingestion import upsert_document, upsert_program
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 bearer_scheme = HTTPBearer()
@@ -116,3 +124,28 @@ def delete_program(program_id: int, db: Session = Depends(get_db)):
     program = load_program(program_id, db)
     db.delete(program)
     db.commit()
+
+
+@router.post("/crawl/run", response_model=CrawlRunSummary, dependencies=[Depends(require_admin)])
+def run_crawl_ingestion(payload: CrawlRunCreate, db: Session = Depends(get_db)):
+    summary = {
+        "programs_created": 0,
+        "programs_updated": 0,
+        "documents_created": 0,
+        "documents_updated": 0,
+        "documents_unchanged": 0,
+        "chunks_written": 0,
+    }
+
+    for program_payload in payload.programs:
+        action = upsert_program(db, program_payload)
+        summary[f"programs_{action}"] += 1
+
+    for document_payload in payload.documents:
+        action, chunk_count = upsert_document(db, **document_payload.model_dump())
+        summary[f"documents_{action}"] += 1
+        if action != "unchanged":
+            summary["chunks_written"] += chunk_count
+
+    db.commit()
+    return summary

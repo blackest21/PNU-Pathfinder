@@ -36,7 +36,9 @@
 - 수강 이력 CRUD API 구현 완료
 - 졸업요건 충족률 계산 API 구현 완료
 - 다음 수강 과목/재수강 추천 API 구현 완료
-- 남은 작업: 크롤러/데이터 수집 설계 구현, OpenAI 챗봇/RAG 연동
+- 크롤러 ingestion 기반 API 구현 완료
+- OpenAI fallback 구조를 가진 `/api/chat` 구현 완료
+- 남은 작업: 실제 외부 사이트 크롤러, VectorDB 저장 방식 확정, RAG 검색 컨텍스트, SSE 스트리밍
 
 **이어가기 방법:** `backend/README.md`와 `docs/stage-2-backend.md`를 읽고 미완료 체크리스트부터 진행
 
@@ -50,7 +52,7 @@
 | Backend | FastAPI 0.136.1 + Python |
 | DB | PostgreSQL + SQLAlchemy 2.0 (sync) |
 | Auth | JWT (PyJWT) + bcrypt |
-| AI | OpenAI API (예정) |
+| AI | OpenAI API + 로컬 fallback |
 | 배포 | Vercel (FE) + VPS/Docker (BE) |
 
 ---
@@ -91,8 +93,9 @@ PNU-pathfinder/
 | 학과별 졸업요건 DB + Admin CRUD | ✅ 완성 |
 | 수강 이력 입력/조회 | ✅ 백엔드 완성 |
 | 졸업요건 충족률 계산 로직 | ✅ 백엔드 완성 |
-| AI 챗봇 (OpenAI 연동) | ❌ 미구현 (UI만 mock) |
+| AI 챗봇 (OpenAI 연동) | ✅ 백엔드 간이 완성 (`OPENAI_API_KEY` 없으면 로컬 fallback) |
 | 수강 추천 로직 | ✅ 백엔드 완성 |
 | What-if 시나리오 | ❌ placeholder |
 | 이력서 생성 | ❌ placeholder |
-| 크롤러/VectorDB ingestion | ❌ 미구현 |
+| 크롤러/VectorDB ingestion | 🚧 수동 ingestion API 완성, 실제 크롤러/VectorDB 미구현 |
+| 로컬 상담 API | ✅ 백엔드 완성 |
