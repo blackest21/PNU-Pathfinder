@@ -114,8 +114,21 @@ These screens do not exist yet and will be built when the RAG pipeline is ready.
 |---|---|
 | Source citations panel | Displays source documents linked to each AI answer |
 | Document explorer | Searchable list of indexed PNU documents |
+| Opportunity dashboard | Unified recommendation page for extracurriculars, certificates, jobs, internships, and labs |
+| Deadline cards | Compact cards showing application/test deadlines and eligibility |
+| Lab/research explorer | Searchable lab/professor/research keyword view |
 | What If? page | Replace placeholder with scenario comparison UI |
 | Resume writer page | Replace placeholder with AI-assisted resume editor |
+
+### Recommendation UI Groups
+
+| Group | Primary fields |
+|---|---|
+| Courses | course name, category, credits, recommended semester, reason |
+| Extracurricular | title, organizer, deadline, date range, target student, source |
+| Certificates | certificate name, exam date, application deadline, career relevance |
+| Jobs / Internships | company/source, role, deadline, required skills, relevance |
+| Labs / Research | lab name, professor, department, research keywords, source |
 
 ---
 

@@ -20,6 +20,7 @@
 | **Password Hashing** | bcrypt `4.3.0` | `backend/requirements.txt` |
 | **Config** | python-dotenv `1.2.2` | `backend/.env.example` |
 | **OpenAI SDK** | openai `2.33.0` | `backend/requirements.txt` |
+| **Vector Extension** | pgvector `0.4.2` | `backend/requirements.txt` |
 | **API Docs** | FastAPI OpenAPI / Swagger UI | `http://localhost:8000/docs` |
 
 > **Note:** The ORM is synchronous (standard `Session`, not `AsyncSession`). Do not introduce async SQLAlchemy without a team decision and updating this table.
@@ -50,7 +51,8 @@
 | React Query / SWR | Not used — raw `fetch` in service files |
 | Zustand / Redux | Not used — `localStorage` + React state |
 | LangChain / RAG pipeline | Not yet implemented (planned after structured backend APIs) |
-| Qdrant / vector DB | Not yet implemented; pgvector vs Qdrant not finalized |
+| Qdrant / vector DB | Not used for MVP; pgvector is the selected first VectorDB path |
+| pgvector | Selected MVP vector search path for document chunk similarity search |
 | Alembic (migrations) | Not used — raw SQL files in `backend/migrations/` |
 | Docker Compose | Not yet added |
 | Async SQLAlchemy | Not used — sync ORM |
@@ -88,6 +90,7 @@ ADMIN_PASSWORD=3011
 ADMIN_TOKEN=pnu-pathfinder-admin-local-token
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 > Development defaults exist in code for local convenience. Production deployments must provide strong values through environment variables.

@@ -42,6 +42,8 @@ frontend/
 │   ├── services/
 │   │   ├── authApi.ts               ← Calls /api/auth/*
 │   │   └── adminApi.ts              ← Calls /api/admin/*
+│   │   ├── chatApi.ts               ← Calls /api/chat
+│   │   └── recommendationsApi.ts    ← Calls /api/recommendations/*
 │   └── data/
 │       └── mockData.ts              ← Mock AI responses for development
 ```
@@ -141,3 +143,31 @@ Backend must be running on `http://localhost:8000` for API calls to work.
 - Backend CORS allows `http://localhost:5173` and `http://127.0.0.1:5173`.
 - If you change the Vite dev port, update the CORS config in `backend/src/main.py`.
 - See [../backend/Backend-Tech.md](../backend/Backend-Tech.md) for how to start the backend.
+
+---
+
+## 9. Planned Recommendation Integration
+
+The frontend should expand from course-only planning to a broader student opportunity dashboard.
+
+Implemented service files:
+
+```text
+frontend/src/services/
+  recommendationsApi.ts   ← GET /api/recommendations/opportunities
+  chatApi.ts              ← POST /api/chat and source metadata
+```
+
+Planned UI surfaces:
+
+- Chat answer source citations from `used_sources`
+- Recommendation tabs:
+  - Courses
+  - Extracurricular
+  - Certificates
+  - Jobs / Internships
+  - Labs / Research
+- Deadline-aware cards for extracurricular and certificate schedules
+- Lab/research cards with professor, keywords, department, and source link
+
+Frontend should keep all backend calls in `src/services/` and avoid direct `fetch` calls inside page components.

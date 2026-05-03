@@ -99,7 +99,66 @@ Crawler
       └─ VectorDB 저장
 ```
 
-초기 간이 구현에서는 VectorDB를 바로 완성하기보다, 크롤러 설계와 저장 구조를 먼저 잡고 VectorDB는 mock 또는 pgvector/Qdrant 중 하나로 확정한 뒤 붙입니다.
+초기 간이 구현에서는 PostgreSQL keyword 검색으로 동작시키고, 다음 단계에서 `pgvector`를 붙입니다.
+
+### VectorDB 결정: pgvector
+
+현재 프로젝트의 VectorDB는 `pgvector`로 시작합니다.
+
+결정 이유:
+
+- 이미 PostgreSQL을 사용하고 있어 추가 VectorDB 서버 없이 구현할 수 있습니다.
+- 졸업요건, 교과과정, 수강 이력, 비교과 일정, 자격증 일정처럼 정형 필터가 중요한 데이터와 벡터 검색을 같은 DB에서 다룰 수 있습니다.
+- 발표/프로토타입 단계에서는 운영해야 할 인프라를 줄이는 것이 더 중요합니다.
+- `document_chunks`와 metadata가 이미 PostgreSQL에 있으므로 `embedding vector` 컬럼만 확장하면 됩니다.
+- Qdrant는 문서 chunk가 크게 늘거나 검색 latency가 문제가 될 때 교체 대상으로 남겨둡니다.
+
+권장 검색 흐름:
+
+```text
+사용자 질문
+  ├─ 학생 프로필/수강 이력/졸업요건 SQL 조회
+  ├─ 날짜/학과/카테고리 SQL 필터링
+  ├─ pgvector similarity 검색
+  └─ OpenAI 컨텍스트 주입
+```
+
+Qdrant 검토 시점:
+
+- 문서 chunk가 수십만 개 이상으로 커지는 경우
+- 검색 latency가 PostgreSQL 운영 부하에 영향을 주는 경우
+- collection 분리, 전용 vector scaling, 실험용 검색 파라미터 관리가 중요해지는 경우
+
+### 확장 데이터 도메인
+
+사용자가 말한 추가 추천 기능은 아래처럼 구현합니다.
+
+| 도메인 | 저장 방식 | 추천 기준 |
+|---|---|---|
+| 비교과 프로그램 | 정형 테이블 + document chunk + pgvector | 마감일, 학과/학년 대상, 진로목표, 키워드 유사도 |
+| 자격증 일정 | 정형 테이블 + document chunk + pgvector | 시험일, 접수 마감, 전공/진로 관련도 |
+| 직업/채용 정보 | 정형 테이블 일부 + document chunk + pgvector | 진로목표, 요구 역량, 전공 적합도 |
+| 연구실/교수 정보 | 연구실/교수 정형 테이블 + document chunk + pgvector | 관심 분야, 전공, 연구 키워드 |
+| 학교 공지/PDF | document chunk + pgvector | 질문 유사도, category, 최신성 |
+
+문서 카테고리는 다음 값을 우선 사용합니다.
+
+```text
+academic_notice
+graduation
+scholarship
+course
+extracurricular
+certificate
+job
+internship
+lab
+professor
+research
+event
+```
+
+일정성이 있는 데이터는 문서 chunk만으로 저장하지 않고 별도 정형 테이블을 추가합니다. 예를 들어 비교과는 `extracurricular_programs`, 자격증은 `certification_schedules`, 연구실은 `lab_profiles` 테이블을 둡니다.
 
 ---
 
@@ -130,6 +189,10 @@ Crawler
 
 - `GET /api/graduation/progress` — 졸업요건 충족률 계산
 - `GET /api/graduation/recommend` — 다음 수강 과목/재수강 추천
+
+### Recommendations
+
+- `GET /api/recommendations/opportunities` — 비교과/자격증/직업·인턴/연구실 추천
 
 ### Chat
 
@@ -189,7 +252,10 @@ Crawler
 - [x] 관리자 수동 실행 API 추가
 - [ ] 실제 크롤러 폴더 구조 생성
 - [ ] 수집 대상 URL 설정 구조 작성
-- [ ] VectorDB 저장 방식 확정
+- [x] VectorDB 저장 방식 확정: pgvector
+- [x] pgvector 마이그레이션 추가
+- [x] 비교과/자격증/직업/인턴/연구실 데이터 모델 추가
+- [x] 문서 embedding 생성 및 저장 (`OPENAI_API_KEY`가 있을 때)
 
 ### Stage 7. AI 상담/RAG
 
@@ -199,10 +265,21 @@ Crawler
 - [x] `/api/chat` 엔드포인트 작성
 - [x] OpenAI 없이 동작하는 로컬 상담 응답 작성
 - [x] OpenAI Responses API 선택적 연동
-- [ ] VectorDB 검색 결과 컨텍스트 추가
+- [x] PostgreSQL document chunk 검색 컨텍스트 추가
+- [x] pgvector similarity 검색으로 교체
+- [x] keyword 검색 fallback 유지
 - [ ] SSE 스트리밍 또는 일반 JSON 응답 방식 확정
 
-### Stage 8. 배포 전 정리
+### Stage 8. 확장 추천
+
+- [x] 비교과 추천 API 추가
+- [x] 자격증 일정 추천 API 추가
+- [x] 직업/인턴 추천 API 추가
+- [x] 연구실/교수 추천 API 추가
+- [ ] 추천 점수/필터 고도화
+- [ ] 프론트 Opportunity dashboard 연동
+
+### Stage 9. 배포 전 정리
 
 - [ ] JWT secret을 `.env` 필수값으로 전환
 - [ ] 관리자 계정/토큰 하드코딩 제거
@@ -240,10 +317,14 @@ backend/
     chat/
       router.py
       schemas.py
+    recommendations/
+      router.py
+      schemas.py
     services/
       graduation.py
       ingestion.py
       chat.py
+      opportunities.py
     database.py
     main.py
     models.py
@@ -287,7 +368,7 @@ backend/
 | 파일 | 정리 방향 |
 |---|---|
 | `seeds/001_academic_programs.sql` | 현재는 `pg_dump` 결과라 `\\restrict`, sequence set, dump 주석이 섞여 있습니다. 실행에는 도움이 되지만, 나중에는 사람이 읽기 쉬운 순수 `INSERT ... ON CONFLICT` 형태로 정리하는 것이 좋습니다. |
-| `src/models.py` | 크롤러, 문서, 채팅, 벡터 메타데이터 모델이 추가되면 `src/models/` 패키지로 분리합니다. 지금은 한 파일 유지가 더 단순합니다. |
+| `src/models.py` | 모델이 더 늘어나면 `src/models/` 패키지로 분리합니다. 지금은 한 파일 유지가 더 단순합니다. |
 | `src/services/` | 서비스가 많아지면 `graduation.py`, `crawler.py`, `chat.py`, `rag.py`처럼 기능별로 확장합니다. |
 
 ### 통합하지 않는 것이 좋은 내용
@@ -328,4 +409,4 @@ curl http://127.0.0.1:8000/api/health
 - 운영 배포 전에는 Alembic 같은 마이그레이션 도구 도입을 검토해야 합니다.
 - 관리자 계정과 토큰은 현재 개발용 기본값이 있으므로 배포 전 반드시 `.env` 기반으로 정리해야 합니다.
 - 졸업요건 계산은 현재 교과과정의 이수구분 문자열에 의존합니다. 실제 학교 데이터가 들어오면 이수구분 표준화 테이블을 추가하는 것이 좋습니다.
-- VectorDB는 아직 확정하지 않았습니다. 간이 완성 단계에서는 PostgreSQL 중심으로 정형 데이터를 먼저 안정화합니다.
+- VectorDB는 MVP 단계에서 `pgvector`로 시작합니다. Qdrant는 문서 규모와 검색 latency가 실제 문제가 될 때 검토합니다.

@@ -34,6 +34,7 @@
   - [x] `POST /api/chat` — 메시지 전송, 로컬 JSON 응답
 - [x] `backend/src/services/chat.py` 작성
   - [x] 학생 이수현황 + 졸업요건 컨텍스트 기반 로컬 응답
+  - [x] PostgreSQL document chunk 검색 컨텍스트 주입
   - [ ] SSE 스트리밍 응답
   - [x] OpenAI gpt-4o-mini 연동
 
@@ -45,8 +46,19 @@
   - [x] 문서 텍스트 저장
   - [x] 문서 chunking
 - [x] `POST /api/admin/crawl/run` 관리자 수동 실행 API 추가
+- [x] pgvector 마이그레이션 추가
+- [x] 비교과/자격증/직업/인턴/연구실 데이터 모델 추가
+- [x] OpenAI embedding 생성 및 pgvector similarity 검색 추가
 - [ ] 실제 외부 사이트 크롤러 구현
-- [ ] VectorDB 저장 방식 확정
+- [x] VectorDB 저장 방식 확정
+
+### Phase 2-E: 확장 추천 API
+- [x] `backend/src/recommendations/` 라우터 생성
+  - [x] `GET /api/recommendations/opportunities` — 비교과/자격증/직업·인턴/연구실 추천
+- [x] `backend/src/services/opportunities.py` 작성
+  - [x] 마감일이 지나지 않은 비교과/자격증/직업·인턴 조회
+  - [x] 학생 학과/전공/진로 목표 기반 간이 랭킹
+  - [x] 연구실/교수 추천 조회
 
 ---
 
@@ -79,6 +91,7 @@ CREATE TABLE course_records (
 | `DELETE` | `/api/courses/{id}` | 수강 이력 삭제 |
 | `GET` | `/api/graduation/progress` | 졸업요건 충족률 계산 |
 | `GET` | `/api/graduation/recommend` | 다음 학기 추천 |
+| `GET` | `/api/recommendations/opportunities` | 비교과/자격증/직업·인턴/연구실 추천 |
 | `POST` | `/api/admin/crawl/run` | 수집 데이터 수동 반영 |
 | `POST` | `/api/chat` | AI 챗봇 (SSE 스트리밍) |
 

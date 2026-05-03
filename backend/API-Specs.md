@@ -228,6 +228,54 @@ Manually apply already-collected crawler/ingestion data. Structured academic pro
       "category": "notice",
       "content": "plain text extracted from HTML/PDF"
     }
+  ],
+  "extracurriculars": [
+    {
+      "title": "비교과 프로그램",
+      "organizer": "string",
+      "category": "extracurricular",
+      "start_date": "2026-05-10",
+      "end_date": "2026-05-12",
+      "application_deadline": "2026-05-08",
+      "location": "string",
+      "target_department": "string | null",
+      "target_grade": "string | null",
+      "source_url": "https://example.ac.kr/program/1",
+      "summary": "string | null"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "자격증명",
+      "issuer": "string | null",
+      "exam_date": "2026-06-01",
+      "application_deadline": "2026-05-20",
+      "related_career": "string | null",
+      "source_url": "https://example.com/cert/1",
+      "summary": "string | null"
+    }
+  ],
+  "jobs": [
+    {
+      "title": "채용/인턴 공고",
+      "organization": "string | null",
+      "opportunity_type": "job | internship",
+      "application_deadline": "2026-05-30",
+      "required_skills": "Python, SQL",
+      "related_career": "string | null",
+      "source_url": "https://example.com/job/1",
+      "summary": "string | null"
+    }
+  ],
+  "labs": [
+    {
+      "lab_name": "연구실명",
+      "professor_name": "string | null",
+      "department": "string | null",
+      "research_keywords": "AI, biohealth",
+      "source_url": "https://example.ac.kr/lab/1",
+      "summary": "string | null"
+    }
   ]
 }
 ```
@@ -240,7 +288,11 @@ Manually apply already-collected crawler/ingestion data. Structured academic pro
   "documents_created": 1,
   "documents_updated": 0,
   "documents_unchanged": 0,
-  "chunks_written": 3
+  "chunks_written": 3,
+  "extracurriculars_upserted": 1,
+  "certifications_upserted": 1,
+  "jobs_upserted": 1,
+  "labs_upserted": 1
 }
 ```
 
@@ -367,7 +419,7 @@ Return recommended next courses and retake candidates for the current student.
 
 ### Chat — `/api/chat`
 
-The current prototype returns a JSON answer using student profile, course records, graduation progress, and recommendations. If `OPENAI_API_KEY` is set, it calls OpenAI; otherwise it falls back to a local rule-based response.
+The current prototype returns a JSON answer using student profile, course records, graduation progress, recommendations, and matching `document_chunks`. If `OPENAI_API_KEY` is set, it calls OpenAI and uses pgvector search for document context; otherwise it falls back to local response and keyword search.
 
 #### POST `/api/chat`
 
@@ -382,8 +434,43 @@ The current prototype returns a JSON answer using student profile, course record
 ```json
 {
   "answer": "학생의 현재 졸업요건 진행률과 추천 과목을 바탕으로 생성된 응답",
-  "used_sources": ["student_profile", "course_records", "graduation_requirements"],
+  "used_sources": [
+    "student_profile",
+    "course_records",
+    "graduation_requirements",
+    "https://example.ac.kr/notice/1"
+  ],
   "mode": "openai | local"
+}
+```
+
+---
+
+### Recommendations — `/api/recommendations`
+
+All recommendation endpoints require student authentication with `Authorization: Bearer <token>`.
+
+#### GET `/api/recommendations/opportunities`
+
+Return opportunity recommendations grouped by extracurricular programs, certifications, jobs/internships, and labs.
+
+**Response** `200 OK`
+```json
+{
+  "extracurriculars": [
+    {
+      "id": 1,
+      "type": "extracurricular",
+      "title": "비교과 프로그램",
+      "source_url": "https://example.ac.kr/program/1",
+      "summary": "string | null",
+      "deadline": "2026-05-08",
+      "reason": "진로 목표와 관련성이 높은 항목입니다."
+    }
+  ],
+  "certifications": [],
+  "jobs": [],
+  "labs": []
 }
 ```
 
@@ -449,7 +536,9 @@ These endpoints do not exist yet. They will be added when the RAG pipeline is im
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-03 | Added PostgreSQL document chunk retrieval to chat context | Codex |
 | 2026-05-03 | Added optional OpenAI chat response with local fallback | Codex |
+| 2026-05-03 | Added opportunity recommendation endpoint | Codex |
 | 2026-05-03 | Added admin crawl ingestion endpoint and document chunk tables | Codex |
 | 2026-05-03 | Added course records and graduation APIs | Codex |
 | 2026-05-02 | Rewritten from actual source code | PM |

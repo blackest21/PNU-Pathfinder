@@ -16,7 +16,14 @@ from src.admin.schemas import (
 )
 from src.database import get_db
 from src.models import AcademicProgram, CurriculumCourse, GraduationRequirement
-from src.services.ingestion import upsert_document, upsert_program
+from src.services.ingestion import (
+    upsert_certification,
+    upsert_document,
+    upsert_extracurricular,
+    upsert_job,
+    upsert_lab,
+    upsert_program,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 bearer_scheme = HTTPBearer()
@@ -135,6 +142,10 @@ def run_crawl_ingestion(payload: CrawlRunCreate, db: Session = Depends(get_db)):
         "documents_updated": 0,
         "documents_unchanged": 0,
         "chunks_written": 0,
+        "extracurriculars_upserted": 0,
+        "certifications_upserted": 0,
+        "jobs_upserted": 0,
+        "labs_upserted": 0,
     }
 
     for program_payload in payload.programs:
@@ -146,6 +157,22 @@ def run_crawl_ingestion(payload: CrawlRunCreate, db: Session = Depends(get_db)):
         summary[f"documents_{action}"] += 1
         if action != "unchanged":
             summary["chunks_written"] += chunk_count
+
+    for extracurricular_payload in payload.extracurriculars:
+        upsert_extracurricular(db, extracurricular_payload)
+        summary["extracurriculars_upserted"] += 1
+
+    for certification_payload in payload.certifications:
+        upsert_certification(db, certification_payload)
+        summary["certifications_upserted"] += 1
+
+    for job_payload in payload.jobs:
+        upsert_job(db, job_payload)
+        summary["jobs_upserted"] += 1
+
+    for lab_payload in payload.labs:
+        upsert_lab(db, lab_payload)
+        summary["labs_upserted"] += 1
 
     db.commit()
     return summary

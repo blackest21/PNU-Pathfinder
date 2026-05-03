@@ -116,6 +116,33 @@ export interface ChatMessageItem {
   text: string;
 }
 
+export interface ChatRequest {
+  message: string;
+}
+
+export interface ChatResponse {
+  answer: string;
+  used_sources: string[];
+  mode: 'openai' | 'local';
+}
+
+export interface OpportunityItem {
+  id: number;
+  type: string;
+  title: string;
+  source_url: string;
+  summary: string | null;
+  deadline: string | null;
+  reason: string;
+}
+
+export interface OpportunityRecommendations {
+  extracurriculars: OpportunityItem[];
+  certifications: OpportunityItem[];
+  jobs: OpportunityItem[];
+  labs: OpportunityItem[];
+}
+
 export interface RecommendationItem {
   type: string;
   tone: string;

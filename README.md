@@ -22,6 +22,7 @@ Academic information at PNU is fragmented across departmental websites, portals,
 | Course Records | Student course history create/list/delete APIs |
 | Graduation Progress | Calculates earned, remaining, and progress percent by requirement category |
 | Course Recommendations | Suggests next courses and retake candidates from the student's progress |
+| Expanded Recommendations | Planned recommendations for extracurricular programs, certificates, jobs, internships, and labs |
 | RAG-based Q&A | Planned retrieval and grounded answer generation over institutional documents |
 | Source Citations | Planned links back to source documents |
 
@@ -72,6 +73,26 @@ uvicorn src.main:app --reload --port 8000
 ```
 
 Interactive API docs are available at `http://localhost:8000/docs` while the backend server is running.
+
+---
+
+## Roadmap Additions
+
+The recommendation scope is expanding beyond courses. The planned system will also ingest and recommend:
+
+- extracurricular program schedules and details
+- certificate exam schedules and preparation opportunities
+- jobs and internships
+- PNU labs, professors, and research areas
+- scholarship/events/notices related to each student's profile
+
+Implementation direction:
+
+- Backend uses PostgreSQL as the source of truth.
+- Vector search starts with `pgvector`, not a separate VectorDB service.
+- Date-based data such as extracurricular and certificate schedules gets dedicated structured tables.
+- Unstructured pages/PDFs are stored in `ingested_documents` and `document_chunks`.
+- Frontend adds recommendation views grouped by course, extracurricular, certificate, job/internship, and lab/research.
 
 ---
 

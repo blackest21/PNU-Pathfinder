@@ -35,15 +35,21 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── router.py        ← POST /api/chat
 │   │   └── schemas.py       ← Pydantic models for chat request/response
+│   ├── recommendations/
+│   │   ├── __init__.py
+│   │   ├── router.py        ← GET /api/recommendations/opportunities
+│   │   └── schemas.py       ← Pydantic models for opportunity recommendations
 │   └── services/
 │       ├── __init__.py
 │       ├── graduation.py    ← graduation progress and recommendation logic
 │       ├── ingestion.py     ← structured data/document ingestion helpers
-│       └── chat.py          ← local chat response assembly
+│       ├── chat.py          ← local/OpenAI chat response assembly
+│       └── opportunities.py ← extracurricular/certificate/job/lab recommendation logic
 ├── migrations/
 │   ├── 001_initial_schema.sql  ← Raw SQL DDL (no Alembic)
 │   ├── 002_course_records.sql  ← Course records table
-│   └── 003_ingestion_documents.sql ← Ingested document/chunk tables
+│   ├── 003_ingestion_documents.sql ← Ingested document/chunk tables
+│   └── 004_pgvector_and_opportunities.sql ← pgvector + recommendation foundation
 ├── seeds/
 │   └── 001_academic_programs.sql ← Sample data for local dev
 ├── .env.example
@@ -65,6 +71,7 @@ backend/
 | `bcrypt` | 4.3.0 | bcrypt backend for passlib |
 | `python-dotenv` | 1.2.2 | Load `.env` into environment |
 | `openai` | 2.33.0 | Optional OpenAI Responses API client for `/api/chat` |
+| `pgvector` | 0.4.2 | SQLAlchemy vector type for document chunk embeddings |
 
 ---
 
@@ -107,6 +114,7 @@ psql -d pnu_pathfinder -f backend/migrations/001_initial_schema.sql
 # Apply later schema changes
 psql -d pnu_pathfinder -f backend/migrations/002_course_records.sql
 psql -d pnu_pathfinder -f backend/migrations/003_ingestion_documents.sql
+psql -d pnu_pathfinder -f backend/migrations/004_pgvector_and_opportunities.sql
 
 # Optionally seed data
 psql -d pnu_pathfinder -f backend/seeds/001_academic_programs.sql
@@ -180,3 +188,5 @@ Crawler output should be split by data type.
 Graduation calculation must use PostgreSQL, not VectorDB. Vector search is for AI context retrieval, while graduation progress is deterministic rule calculation.
 
 Current prototype ingestion endpoint: `POST /api/admin/crawl/run`. It accepts already-collected structured program data and document text, then writes programs to PostgreSQL and document chunks to `document_chunks`.
+
+`/api/chat` uses pgvector similarity search over `document_chunks.embedding` when `OPENAI_API_KEY` is available. If embeddings cannot be generated, it falls back to keyword search over `document_chunks`.

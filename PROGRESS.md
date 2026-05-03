@@ -38,7 +38,12 @@
 - 다음 수강 과목/재수강 추천 API 구현 완료
 - 크롤러 ingestion 기반 API 구현 완료
 - OpenAI fallback 구조를 가진 `/api/chat` 구현 완료
-- 남은 작업: 실제 외부 사이트 크롤러, VectorDB 저장 방식 확정, RAG 검색 컨텍스트, SSE 스트리밍
+- PostgreSQL document chunk 기반 RAG 검색 컨텍스트 구현 완료
+- VectorDB 방식은 pgvector로 결정
+- pgvector 및 비교과/자격증/직업/인턴/연구실 데이터 모델 기반 추가
+- OpenAI embedding + pgvector 검색 경로 추가
+- 비교과/자격증/직업·인턴/연구실 추천 API 구현 완료
+- 남은 작업: 실제 외부 사이트 크롤러, 추천 점수 고도화, 프론트 Opportunity dashboard 연동, SSE 스트리밍
 
 **이어가기 방법:** `backend/README.md`와 `docs/stage-2-backend.md`를 읽고 미완료 체크리스트부터 진행
 
@@ -97,5 +102,9 @@ PNU-pathfinder/
 | 수강 추천 로직 | ✅ 백엔드 완성 |
 | What-if 시나리오 | ❌ placeholder |
 | 이력서 생성 | ❌ placeholder |
-| 크롤러/VectorDB ingestion | 🚧 수동 ingestion API 완성, 실제 크롤러/VectorDB 미구현 |
+| 크롤러/VectorDB ingestion | 🚧 수동 ingestion + PostgreSQL chunk 검색 완성, 실제 크롤러/VectorDB 미구현 |
 | 로컬 상담 API | ✅ 백엔드 완성 |
+| 비교과 추천 | ✅ 백엔드 간이 완성 |
+| 자격증 일정 추천 | ✅ 백엔드 간이 완성 |
+| 직업/인턴 추천 | ✅ 백엔드 간이 완성 |
+| 연구실/교수 추천 | ✅ 백엔드 간이 완성 |

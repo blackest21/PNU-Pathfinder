@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -70,9 +72,57 @@ class IngestionDocumentCreate(BaseModel):
     content: str = Field(min_length=1)
 
 
+class ExtracurricularProgramCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    organizer: str | None = Field(default=None, max_length=100)
+    category: str = Field(default="extracurricular", min_length=1, max_length=50)
+    start_date: date | None = None
+    end_date: date | None = None
+    application_deadline: date | None = None
+    location: str | None = Field(default=None, max_length=150)
+    target_department: str | None = Field(default=None, max_length=100)
+    target_grade: str | None = Field(default=None, max_length=50)
+    source_url: str = Field(min_length=1, max_length=500)
+    summary: str | None = None
+
+
+class CertificationScheduleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+    issuer: str | None = Field(default=None, max_length=100)
+    exam_date: date | None = None
+    application_deadline: date | None = None
+    related_career: str | None = Field(default=None, max_length=150)
+    source_url: str = Field(min_length=1, max_length=500)
+    summary: str | None = None
+
+
+class JobOpportunityCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    organization: str | None = Field(default=None, max_length=150)
+    opportunity_type: str = Field(default="job", min_length=1, max_length=50)
+    application_deadline: date | None = None
+    required_skills: str | None = Field(default=None, max_length=500)
+    related_career: str | None = Field(default=None, max_length=150)
+    source_url: str = Field(min_length=1, max_length=500)
+    summary: str | None = None
+
+
+class LabProfileCreate(BaseModel):
+    lab_name: str = Field(min_length=1, max_length=150)
+    professor_name: str | None = Field(default=None, max_length=100)
+    department: str | None = Field(default=None, max_length=100)
+    research_keywords: str | None = Field(default=None, max_length=500)
+    source_url: str = Field(min_length=1, max_length=500)
+    summary: str | None = None
+
+
 class CrawlRunCreate(BaseModel):
     programs: list[AcademicProgramCreate] = Field(default_factory=list)
     documents: list[IngestionDocumentCreate] = Field(default_factory=list)
+    extracurriculars: list[ExtracurricularProgramCreate] = Field(default_factory=list)
+    certifications: list[CertificationScheduleCreate] = Field(default_factory=list)
+    jobs: list[JobOpportunityCreate] = Field(default_factory=list)
+    labs: list[LabProfileCreate] = Field(default_factory=list)
 
 
 class CrawlRunSummary(BaseModel):
@@ -82,3 +132,7 @@ class CrawlRunSummary(BaseModel):
     documents_updated: int
     documents_unchanged: int
     chunks_written: int
+    extracurriculars_upserted: int
+    certifications_upserted: int
+    jobs_upserted: int
+    labs_upserted: int

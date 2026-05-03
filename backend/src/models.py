@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from src.database import Base
 
@@ -135,6 +136,91 @@ class DocumentChunk(Base):
     document_id: Mapped[int] = mapped_column(ForeignKey("ingested_documents.id", ondelete="CASCADE"), nullable=False, index=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     document: Mapped[IngestedDocument] = relationship(back_populates="chunks")
+
+
+class ExtracurricularProgram(Base):
+    __tablename__ = "extracurricular_programs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    organizer: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="extracurricular")
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    application_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    target_department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    target_grade: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    source_url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False, index=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class CertificationSchedule(Base):
+    __tablename__ = "certification_schedules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    issuer: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    exam_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    application_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    related_career: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    source_url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False, index=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class JobOpportunity(Base):
+    __tablename__ = "job_opportunities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    organization: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    opportunity_type: Mapped[str] = mapped_column(String(50), nullable=False, default="job")
+    application_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    required_skills: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    related_career: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    source_url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False, index=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class LabProfile(Base):
+    __tablename__ = "lab_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    lab_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    professor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    research_keywords: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source_url: Mapped[str] = mapped_column(String(500), unique=True, nullable=False, index=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
